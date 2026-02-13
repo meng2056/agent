@@ -1,0 +1,53 @@
+// CAD Agent Workflow
+digraph {
+	dpi=150 rankdir=TB size="20,20"
+	START [label=START fillcolor="#81C784" fontname=Arial fontsize=11 shape=ellipse style="filled,rounded"]
+	begin_input [label="begin_input
+(接收用户输入)" fillcolor="#FFE0B2" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	plan_run [label="plan_run
+(生成执行计划)" fillcolor="#C8E6C9" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	post_plan_input [label="post_plan_input
+(计划后处理)" fillcolor="#FFF9C4" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	proc_confirm [label="proc_confirm
+(处理用户确认)" fillcolor="#BBDEFB" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	toolcall_plan [label="toolcall_plan
+(准备工具调用)" fillcolor="#C8E6C9" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	tool_call [label="tool_call
+(执行工具)" fillcolor="#FFCDD2" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	plan_update [label="plan_update
+(更新计划)" fillcolor="#FFF9C4" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	tool_summary [label="tool_summary
+(生成总结)" fillcolor="#F0F4C3" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	rtrv [label="rtrv
+(检索知识)" fillcolor="#B2DFDB" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	rag [label="rag
+(RAG回答)" fillcolor="#B2DFDB" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	chat [label="chat
+(通用对话)" fillcolor="#E1BEE7" fontname=Arial fontsize=11 shape=box style="filled,rounded"]
+	START -> begin_input [label="开始"]
+	begin_input -> plan_run [label=cad_run]
+	begin_input -> rtrv [label=cad_rag]
+	begin_input -> chat [label=general_chat]
+	plan_run -> post_plan_input
+	post_plan_input -> proc_confirm [label="success/
+partial_success"]
+	post_plan_input -> plan_run [label=failed color=red style=dashed]
+	post_plan_input -> plan_run [label=more_info style=dashed]
+	proc_confirm -> toolcall_plan [label=confirm_plan color=green]
+	proc_confirm -> rag [label=clarify_plan style=dotted]
+	proc_confirm -> plan_run [label=reject_plan color=red style=dashed]
+	toolcall_plan -> tool_call
+	tool_call -> tool_summary [label=run_done]
+	tool_call -> plan_update [label=running]
+	plan_update -> tool_call [style=bold]
+	tool_summary -> begin_input [color=blue style=dashed]
+	rtrv -> rag
+	rag -> begin_input [color=blue style=dashed]
+	chat -> begin_input [color=blue style=dashed]
+	subgraph cluster_legend {
+		bgcolor="#F5F5F5" label="图例说明" style=rounded
+		leg1 [label="输入/开始" fillcolor="#81C784" shape=ellipse style=filled]
+		leg2 [label="处理节点" fillcolor="#C8E6C9" shape=box style=filled]
+		leg3 [label="条件分支" fillcolor="#FFF9C4" shape=box style=filled]
+	}
+}

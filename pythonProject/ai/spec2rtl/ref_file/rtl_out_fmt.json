@@ -1,0 +1,54 @@
+{
+  "name": "project_name",
+  "type": "folder",
+  "children": [
+    {
+      "name": "rtl",
+      "type": "folder",
+      "children": [
+        {
+          "name": "block1.v",
+          "type": "file",
+          "code": "code_content"
+        },
+                {
+          "name": "block2.v",
+          "type": "file",
+          "code": "code_content"
+        }
+      ]
+    },
+    {
+      "name": "testbench",
+      "type": "folder",
+      "children": [
+        {
+          "name": "project_tb.v",
+          "type": "file",
+          "code": "code_content"
+        },
+        {
+          "name": "project_stimulus.v",
+          "type": "file",
+          "code": "code_content"
+        }
+      ]
+    },
+    {
+      "name": "testcase",
+      "type": "folder",
+      "children": [
+        {
+          "name": "function1_test.v",
+          "type": "file",
+          "code": "code_content"
+        },
+        {
+          "name": "function2_test.v",
+          "type": "file",
+          "code": "code_content"
+        }
+      ]
+    }
+  ]
+}

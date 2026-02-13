@@ -1,0 +1,1269 @@
+{
+  "spec_metadata": {
+    "project_name": "CHBIST",
+    "project_version": "1.0.0",
+    "author": "LIN WEN",
+    "description": ""
+  },
+  "glossary": [
+    {
+      "term": "ACT",
+      "type": "command",
+      "description": [
+        "Row Command, means Activate, Before a READ or WRITE command can be issued to a bank,",
+        " a row in that bank must be opened. This is accomplished via the ACT command."
+      ]
+    },
+    {
+      "term": "RD",
+      "type": "command",
+      "description": "Column Command, means Read, READ is an one cycle command"
+    },
+    {
+      "term": "WR",
+      "type": "command",
+      "description": "Column Command, means Write, A Write burst is initiated with a WR column command"
+    },
+    {
+      "term": "PREab",
+      "type": "command",
+      "description": "Row Command, means Precharge All Banks, This command used to deactivate the Open Row in all banks."
+    },
+    {
+      "term": "tRRDL",
+      "type": "timing",
+      "description": "Delay between successive Row command ACT to different banks within same Bank Groups."
+    },
+    {
+      "term": "tRRDS",
+      "type": "timing",
+      "description": "Delay between successive Row command ACT to different banks within different Bank Groups."
+    },
+    {
+      "term": "tRCDWR",
+      "type": "timing",
+      "description": "Delay in switching from Row Command ACT to Row Command WR."
+    },
+    {
+      "term": "tCCDL",
+      "type": "timing",
+      "description": "Delay in switching Column command RD/WR from bank A to bank B within same Bank Group."
+    },
+    {
+      "term": "tCCDS",
+      "type": "timing",
+      "description": "Delay in swicthing Column command RD/WR from bank A to bank B within different Bank Group."
+    },
+    {
+      "term": "tCCDR",
+      "type": "timing",
+      "description": "Delay in switching Column command RD from bank A to bank B within different Stack."
+    },
+    {
+      "term": "tRTP",
+      "type": "timing",
+      "description": "Delay in switching form Column command RD to Row Command PREab within same bank."
+    },
+    {
+      "term": "tRP",
+      "type": "timing",
+      "description": "The Period of the Row command PREab"
+    },
+    {
+      "term": "CA",
+      "type": "abbreviation",
+      "description": "Column address in each bank"
+    },
+    {
+      "term": "BA",
+      "type": "abbreviation",
+      "description": "Bank Address in each group"
+    },
+    {
+      "term": "BG",
+      "type": "abbreviation",
+      "description": "Bank Group, "
+    },
+    {
+      "term": "SID",
+      "type": "abbreviation",
+      "description": "Stack ID"
+    },
+    {
+      "term": "PC",
+      "type": "abbreviation",
+      "description": "Pseudo Channel"
+    }
+  ],
+  "design_overview": {
+    "design_name": "CHBIST",
+    "design_description": [
+      "The main function of this block is to generate Row Command and Column command to SCAN banks in different Bank Group and Stack within HBM",
+      "Scan mode is configurable via port with options to scan all banks or banks in specified address ranges",
+      "For banks involved in scanning, the row address scan range and Row Address increment direction can all be scpecified via port",
+      "Row Command and Column Command should meet the timing constraints like tRRDL, tCCDL and so on",
+      "The bank addressing in HBM utilizes a tripartite structure: {SID[1:0], BG[1:0], BA[1:0]}"
+    ],
+    "opcode_mapping": {
+      "commands": [
+        {
+          "name": "ACT",
+          "opcode_type": "edge_sensitive",
+          "clock_edges": {
+            "rising": {
+              "port_mapping": [
+                {
+                  "port_name": "Rr0",
+                  "code": [
+                    "{BG[1:0], BA[1:0], SID[1:0], PC, 3'b110}",
+                    "{RA[7:0], 2'b11}"
+                  ],
+                  "explain": [
+                    "BG denotes the Bank group to which the bank currently being scanned belongs",
+                    "BA denote the Bank Address of the bank currently being scanned within a single Bank Group",
+                    "SID denotes the Stack ID to which the bank currently being scanned belongs",
+                    "The command send to Pseudo Channel 0. PC = 0, otherwise, PC = 1",
+                    "RA denotes the Row Address of the ROW currently being scanned"
+                  ]
+                },
+                {
+                  "port_name": "Rr1",
+                  "code": [
+                    "{BG[1:0], BA[1:0], SID[1:0], PC, 3'b110}",
+                    "{RA[7:0], 2'b11}"
+                  ],
+                  "explain": [
+                    "BG denotes the Bank group to which the bank currently being scanned belongs",
+                    "BA denote the Bank Address of the bank currently being scanned within a single Bank Group",
+                    "SID denotes the Stack ID to which the bank currently being scanned belongs",
+                    "The command send to Pseudo Channel 0, then PC = 0, otherwise, PC = 1",
+                    "RA denotes the Row Address of the ROW currently being scanned"
+                  ]
+                }
+              ]
+            },
+            "falling": {
+              "port_mapping": [
+                {
+                  "port_name": "Rf0",
+                  "code": [
+                    "{1'b1, RA[14:8], 2'b11}"
+                  ],
+                  "explain": [
+                    "RA denotes the Row Address of the ROW currently being scanned"
+                  ]
+                },
+                {
+                  "port_name": "Rf1",
+                  "code": [
+                    "{1'b1, RA[14:8], 2'b11}"
+                  ],
+                  "explain": [
+                    "RA denotes the Row Address of the ROW currently being scanned"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PREab",
+          "opcode_type": "edge_sensitive",
+          "clock_edges": {
+            "rising": {
+              "port_mapping": [
+                {
+                  "port_name": "Rr0",
+                  "code": "{6'b111111, PC, 3'b101}",
+                  "explain": [
+                    "The command send to Pseudo Channel 0, then PC = 0, otherwise, PC = 1"
+                  ]
+                },
+                {
+                  "port_name": "Rr1",
+                  "code": "{6'b111111, PC, 3'b101}",
+                  "explain": [
+                    "The command send to Pseudo Channel 0, then PC = 0, otherwise, PC = 1"
+                  ]
+                }
+              ]
+            },
+            "falling": {
+              "port_mapping": [
+                {
+                  "port_name": "Rf0",
+                  "code": [
+                    "{6'b111111, PC, 3'b101}"
+                  ],
+                  "explain": [
+                    "The command send to Pseudo Channel 0, then PC = 0, otherwise, PC = 1"
+                  ]
+                },
+                {
+                  "port_name": "Rf1",
+                  "code": [
+                    "{6'b111111, PC, 3'b101}"
+                  ],
+                  "explain": [
+                    "The command send to Pseudo Channel 0, then PC = 0, otherwise, PC = 1"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNOP",
+          "opcode_type": "edge_sensitive",
+          "clock_edges": {
+            "rising": {
+              "port_mapping": [
+                {
+                  "port_name": "Rr0",
+                  "code": [
+                    "{6'bvvvvvv, 4'b1111}"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                },
+                {
+                  "port_name": "Rr1",
+                  "code": [
+                    "{6'bvvvvvv, 4'b1111}"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                }
+              ]
+            },
+            "falling": {
+              "port_mapping": [
+                {
+                  "port_name": "Rf0",
+                  "code": [
+                    "{6'bvvvvvv, 4'b1111}"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                },
+                {
+                  "port_name": "Rf1",
+                  "code": [
+                    "{6'bvvvvvv, 4'b1111}"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CNOP",
+          "opcode_type": "edge_sensitive",
+          "clock_edges": {
+            "rising": {
+              "port_mapping": [
+                {
+                  "port_name": "Cr0",
+                  "code": [
+                    "{5'bvvvvv, 3'b111}"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                },
+                {
+                  "port_name": "Cr1",
+                  "code": [
+                    "{5'bvvvvv, 3'b111}"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                }
+              ]
+            },
+            "falling": {
+              "port_mapping": [
+                {
+                  "port_name": "Cf0",
+                  "code": [
+                    "8'bvvvvvvvv"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                },
+                {
+                  "port_name": "Cf1",
+                  "code": [
+                    "8'bvvvvvvvv"
+                  ],
+                  "explain": [
+                    "v means valid signal, either 1'b0 or 1'b1"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RD",
+          "opcode_type": "edge_sensitive",
+          "clock_edges": {
+            "rising": {
+              "port_mapping": [
+                {
+                  "port_name": "Cr0",
+                  "code": [
+                    "{BA[0], SID[1:0], PC, 4'b0101}"
+                  ],
+                  "explain": [
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group",
+                    "SID denotes the Stack ID to which the bank currently being scanned belongs",
+                    "The command send to Pseudo Channel 0. PC = 0, otherwise, PC = 1"
+                  ]
+                },
+                {
+                  "port_name": "Cr1",
+                  "code": [
+                    "{BA[0], SID[1:0], PC, 4'b0101}"
+                  ],
+                  "explain": [
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group",
+                    "SID denotes the Stack ID to which the bank currently being scanned belongs",
+                    "The command send to Pseudo Channel 0. PC = 0, otherwise, PC = 1"
+                  ]
+                }
+              ]
+            },
+            "falling": {
+              "port_mapping": [
+                {
+                  "port_name": "Cf0",
+                  "code": [
+                    "{CA[4:0], BG[1:0], BA[1]}"
+                  ],
+                  "explain": [
+                    "CA denotes the Column address of the bank currently being scanned within a single Bank",
+                    "BG denotes the Bank Group address of the bank currently being scanned",
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group"
+                  ]
+                },
+                {
+                  "port_name": "Cf1",
+                  "code": [
+                    "{CA[4:0], BG[1:0], BA[1]}"
+                  ],
+                  "explain": [
+                    "CA denotes the Column address of the bank currently being scanned within a single Bank",
+                    "BG denotes the Bank Group address of the bank currently being scanned",
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "WR",
+          "opcode_type": "edge_sensitive",
+          "clock_edges": {
+            "rising": {
+              "port_mapping": [
+                {
+                  "port_name": "Cr0",
+                  "code": [
+                    "{BA[0], SID[1:0], PC, 4'b0001}"
+                  ],
+                  "explain": [
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group",
+                    "SID denotes the Stack ID to which the bank currently being scanned belongs",
+                    "The command send to Pseudo Channel 0. PC = 0, otherwise, PC = 1"
+                  ]
+                },
+                {
+                  "port_name": "Cr1",
+                  "code": [
+                    "{BA[0], SID[1:0], PC, 4'b0001}"
+                  ],
+                  "explain": [
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group",
+                    "SID denotes the Stack ID to which the bank currently being scanned belongs",
+                    "The command send to Pseudo Channel 0. PC = 0, otherwise, PC = 1"
+                  ]
+                }
+              ]
+            },
+            "falling": {
+              "port_mapping": [
+                {
+                  "port_name": "Cf0",
+                  "code": [
+                    "{CA[4:0], BG[1:0], BA[1]}"
+                  ],
+                  "explain": [
+                    "CA denotes the Column address of the bank currently being scanned within a single Bank",
+                    "BG denotes the Bank Group address of the bank currently being scanned",
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group"
+                  ]
+                },
+                {
+                  "port_name": "Cf1",
+                  "code": [
+                    "{CA[4:0], BG[1:0], BA[1]}"
+                  ],
+                  "explain": [
+                    "CA denotes the Column address of the bank currently being scanned within a single Bank",
+                    "BG denotes the Bank Group address of the bank currently being scanned",
+                    "BA denotes the Bank address of the bank currently being scanned within a single Bank Group"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "design_structure": {
+      "block_name": "chbist_top",
+      "block_type": "module",
+      "block_description": "bala bala",
+      "block_children": [
+        {
+          "block_name": "chbist_ctrl",
+          "block_type": "module",
+          "block_description": "bala bala",
+          "block_children": []
+        },
+        {
+          "block_name": "chbist_rowcmd",
+          "block_type": "module",
+          "block_description": "bala bala",
+          "block_children": []
+        },
+        {
+          "block_name": "chbist_colcmd",
+          "block_type": "module",
+          "block_description": "bala bala",
+          "block_children": [
+            {
+              "block_name": "chbist_colcmd_rd",
+              "block_type": "module",
+              "block_description": "bala bala",
+              "block_children": []
+            },
+            {
+              "block_name": "chbist_colcmd_wr",
+              "block_type": "module",
+              "block_description": "bala bala",
+              "block_children": []
+            }
+          ]
+        },
+        {
+          "block_name": "chbist1_rowcmd",
+          "block_type": "module",
+          "block_description": "bala bala",
+          "block_children": []
+        },
+        {
+          "block_name": "chbist1_colcmd",
+          "block_type": "module",
+          "block_description": "bala bala",
+          "block_children": [
+            {
+              "block_name": "chbist1_colcmd_rd",
+              "block_type": "module",
+              "block_description": "bala bala",
+              "block_children": []
+            },
+            {
+              "block_name": "chbist1_colcmd_wr",
+              "block_type": "module",
+              "block_description": "bala bala",
+              "block_children": []
+            }
+          ]
+        }
+      ]
+    },
+    "port_definition": [
+      {
+        "port_name": "RESET_n",
+        "port_io": "input",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "reset",
+        "is_registered": false
+      },
+      {
+        "port_name": "CK_1G",
+        "port_io": "input",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "clock",
+        "is_registered": false
+      },
+      {
+        "port_name": "CKOut",
+        "port_io": "output",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "clock",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_MODE",
+        "port_io": "input",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_TESTCFG",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_PC",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_SID",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_BK_START",
+        "port_io": "input",
+        "port_width": 6,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_BK_END",
+        "port_io": "input",
+        "port_width": 6,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_BA_MAP",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_BG_MAP",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_SID_MAP",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_ROW_START",
+        "port_io": "input",
+        "port_width": 14,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_ROW_END",
+        "port_io": "input",
+        "port_width": 14,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_ROW_INC",
+        "port_io": "input",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tRRDL",
+        "port_io": "input",
+        "port_width": 4,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tRRDS",
+        "port_io": "input",
+        "port_width": 4,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tRCDWR",
+        "port_io": "input",
+        "port_width": 6,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tCCDL",
+        "port_io": "input",
+        "port_width": 3,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tCCDS",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tCCDR",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tRTP",
+        "port_io": "input",
+        "port_width": 3,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_tRP",
+        "port_io": "input",
+        "port_width": 5,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_START",
+        "port_io": "input",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_SEL_DBG",
+        "port_io": "input",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_CNT_DBG",
+        "port_io": "output",
+        "port_width": 16,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "WDR_CHB_STATE_DBG",
+        "port_io": "output",
+        "port_width": 2,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Rr0",
+        "port_io": "output",
+        "port_width": 10,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Rf0",
+        "port_io": "output",
+        "port_width": 10,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Rr1",
+        "port_io": "output",
+        "port_width": 10,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Rf1",
+        "port_io": "output",
+        "port_width": 10,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Cr0",
+        "port_io": "output",
+        "port_width": 8,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Cf0",
+        "port_io": "output",
+        "port_width": 8,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Cr1",
+        "port_io": "output",
+        "port_width": 8,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "Cf1",
+        "port_io": "output",
+        "port_width": 8,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "CKEn",
+        "port_io": "output",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      },
+      {
+        "port_name": "BistEn",
+        "port_io": "output",
+        "port_width": 1,
+        "clock_domain": "CK_1G",
+        "type": "control",
+        "is_registered": true
+      }
+    ],
+    "port_description": [
+      {
+        "port_name": "RESET_n",
+        "description": "Reset signal, Active-low"
+      },
+      {
+        "port_name": "CK_1G",
+        "description": "Input clock, 1GHz frequency"
+      },
+      {
+        "port_name": "CKOut",
+        "description": "Output clock, 1GHz frequency, rising clock edge align with the Rr0,Rf0,Rr1,Rf1,Cr0,Cr1,Cf0,Cf1"
+      },
+      {
+        "port_name": "WDR_CHB_MODE",
+        "description": [
+          "configure the scan mode",
+          "1'b0: scan all banks in scannable bank address range specified by WDR_CHB_SID",
+          "1'b1: scan all banks in ranges specified form WDR_CHB"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_TESTCFG",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_PC",
+        "description": [
+          "configure the test pattern",
+          "2'b00: Both Pseudo_Channel_0 and Pseudo_Channel_1 are closed",
+          "2'b01: Only enable Pseudo_Channel_0",
+          "2'b10: Only enable Pseudo_Channel_1",
+          "2'b11: enable both Pseudo_Channel_0 and Pseudo_Channel_1"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_SID",
+        "description": [
+          "configure the scannable Bank Address range:",
+          "2'b00: from 6'b000000 to 6'b001111",
+          "2'b01: from 6'b000000 to 6'b011111",
+          "2'b10: from 6'b000000 to 6'b101111",
+          "2'b11: from 6'b000000 to 6'b111111"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_BK_START",
+        "description": "configure the start bank address when execute scan behavior"
+      },
+      {
+        "port_name": "WDR_CHB_BK_END",
+        "description": "configure the end bank address for scan behavior when WDR_CHB_MODE = 1'b1"
+      },
+      {
+        "port_name": "WDR_CHB_BA_MAP",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_BG_MAP",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_SID_MAP",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_ROW_START",
+        "description": "configure the start row address in the scannable bank"
+      },
+      {
+        "port_name": "WDR_CHB_ROW_END",
+        "description": "configure the end row address in the scannable bank"
+      },
+      {
+        "port_name": "WDR_CHB_ROW_INC",
+        "description": [
+          "configure the row address increment mode",
+          "1'b0: Increasing Row Address by 1 after the last Row Address in all scannable banks has done the ACT->WR->RD->PREab scan",
+          "1'b1: Decreasiong Row Address by 1 after the last Row Address in all scannable banks has done the ACT->WR->RD->PREab scan",
+          "the internal row address register support wrap-around capability",
+          "therefore no constraint is imposed on the relative magnitude between WDR_CHB_ROW_END and WDR_CHB_ROW_START"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tRRDL",
+        "description": [
+          "configure the tRRDL timing duration",
+          "4'b0111: 7*T(CK_1G)",
+          "4'b1000: 8*T(CK_1G)",
+          "4'b1001: 9*T(CK_1G)",
+          "4'b1010: 10*T(CK_1G)",
+          "4'b1011: 11*T(CK_1G)",
+          "4'b1100: 12*T(CK_1G)",
+          "4'b1101: 13*T(CK_1G)",
+          "4'b1110: 14*T(CK_1G)",
+          "4'b1111: 15*T(CK_1G)",
+          "other value is invalid"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tRRDS",
+        "description": [
+          "configure the tRRDS timing duration",
+          "4'b0111: 7*T(CK_1G)",
+          "4'b1000: 8*T(CK_1G)",
+          "4'b1001: 9*T(CK_1G)",
+          "4'b1010: 10*T(CK_1G]",
+          "4'b1011: 11*T(CK_1G)",
+          "4'b1100: 12*T(CK_1G)",
+          "4'b1101: 13*T(CK_1G)",
+          "4'b1110: 14*T(CK_1G)",
+          "4'b1111: 15*T(CK_1G)",
+          "other value is invalid"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tRCDWR",
+        "description": [
+          "configure the tRCDWR timing duration",
+          "6'b000110: 18*T(CK_1G)",
+          "6'b101000: 20*T(CK_1G)",
+          "6'b101000: 20*T(CK_1G)"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tCCDL",
+        "description": [
+          "configure the tCCDL timing duration",
+          "3'b000: 4*T(CK_1G)",
+          "3'b010: 6*T(CK_1G)",
+          "3'b100: 8*T(CK_1G)",
+          "3'b110: 10*T(CK_1G)",
+          "other value is invalid"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tCCDS",
+        "description": [
+          "configure the tCCDS timing duration",
+          "2'b00: 2*T(CK_1G)",
+          "2'b01: 3*T(CK_1G)",
+          "2'b10: 4*T(CK_1G)",
+          "2'b11: 5*T(CK_1G)"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tCCDR",
+        "description": [
+          "configure the tCCDR timing duration",
+          "2'b00: 2*T(CK_1G)",
+          "2'b01: 3*T(CK_1G)",
+          "2'b10: 4*T(CK_1G)",
+          "2'b11: 5*T(CK_1G)"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tRTP",
+        "description": [
+          "configure the tRTP timing duration",
+          "3'b000: 3*T(CK_1G)",
+          "3'b001: 4*T(CK_1G)",
+          "3'b010: 5*T(CK_1G)",
+          "3'b011: 6*T(CK_1G)",
+          "3'b100: 7*T(CK_1G)",
+          "3'b101: 8*T(CK_1G)",
+          "3'b110: 9*T(CK_1G)",
+          "3'b111: 10*T(CK_1G)"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_tRP",
+        "description": [
+          "configure the tRP timing duration",
+          "5'b00000: 16*T(CK_1G)",
+          "5'b00001: 17*T(CK_1G)",
+          "5'b00010: 18*T(CK_1G)",
+          "5'b00011: 19*T(CK_1G)",
+          "5'b00100: 20*T(CK_1G)",
+          "5'b00101: 21*T(CK_1G)",
+          "5'b00110: 22*T(CK_1G)",
+          "5'b00111: 23*T(CK_1G)",
+          "5'b01000: 24*T(CK_1G)",
+          "5'b01001: 25*T(CK_1G)",
+          "5'b01010: 26*T(CK_1G)",
+          "5'b01011: 27*T(CK_1G)",
+          "5'b01100: 28*T(CK_1G)",
+          "5'b01101: 29*T(CK_1G)",
+          "5'b01110: 30*T(CK_1G)",
+          "5'b01111: 31*T(CK_1G)",
+          "5'b10000: 32*T(CK_1G)",
+          "5'b10001: 33*T(CK_1G)",
+          "5'b10010: 34*T(CK_1G)",
+          "5'b10011: 35*T(CK_1G)",
+          "5'b10100: 36*T(CK_1G)",
+          "5'b10101: 37*T(CK_1G)",
+          "5'b10110: 38*T(CK_1G)",
+          "5'b10111: 39*T(CK_1G)",
+          "5'b11000: 40*T(CK_1G)",
+          "5'b11001: 41*T(CK_1G)",
+          "5'b11010: 42*T(CK_1G)",
+          "other value is invalid"
+        ]
+      },
+      {
+        "port_name": "WDR_CHB_START",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_SEL_DBG",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_CNT_DBG",
+        "description": ""
+      },
+      {
+        "port_name": "WDR_CHB_STATE_DBG",
+        "description": ""
+      },
+      {
+        "port_name": "Rr0",
+        "description": "Row command 0 at the rising edge of CK_1G"
+      },
+      {
+        "port_name": "Rf0",
+        "description": "Row command 0 at the falling edge of CK_1G"
+      },
+      {
+        "port_name": "Rr1",
+        "description": "Row command 1 at the rising edge of CK_1G"
+      },
+      {
+        "port_name": "Rf1",
+        "description": "Row command 1 at the falling edge of CK_1G"
+      },
+      {
+        "port_name": "Cr0",
+        "description": "Column command 0 at the rising edge of CK_1G"
+      },
+      {
+        "port_name": "Cf0",
+        "description": "Column command 0 at the falling edge of CK_1G"
+      },
+      {
+        "port_name": "Cr1",
+        "description": "Column command 1 at the rising edge of CK_1G"
+      },
+      {
+        "port_name": "Cf1",
+        "description": "Column command 1 at the falling edge of CK_1G"
+      },
+      {
+        "port_name": "CKEn",
+        "description": ""
+      },
+      {
+        "port_name": "BistEn",
+        "description": ""
+      }
+    ],
+    "register_definition": [
+      {
+        "register_name": "",
+        "register_width": 12
+      }
+    ],
+    "register_description": [
+      {},
+      {}
+    ],
+    "functionality": {
+      "state_machine": {
+        "name": "chbist_scan_ctrl",
+        "description": "",
+        "states": [
+        {
+          "name": "IDLE",
+          "type": "initial",
+          "behavior": [
+            "CKOut port shall maintain low,",
+            "CKEn port shall maintain low,",
+            "BistEn port shall maintain low,",
+            "Rr0, Rr1, Rf0, Rf1 ports shall be any value",
+            "Cr0, Cr1, Cf0, Cf1 ports shall be any value"
+          ],
+          "transitions": [
+            {
+              "condition": "WDR_CHB_START == 1'b1 && RESET_N == 1'b1",
+              "next_state": "ACTIVATE_ALL"
+            },
+            {
+              "condition": "!(WDR_CHB_START == 1'b1 && RESET_N == 1'b1)",
+              "next_state": "IDLE"
+            }
+          ]
+        },
+        {
+          "name": "ACTIVATE_ALL",
+          "type": "normal",
+          "behavior": [
+            {
+              "condition": "WDR_CHB_PC == 2'b00",
+              "action": []
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b01 or WDR_CHB_PC == 2'b10",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will issue either ACT or RNOP commands independently",
+                "The value of WDR_CHB_PC set the PC bit in ACT command",
+                "consecutive ACT commands for different bank address require tRRDL or tRRDS timing constraints on the same port",
+                "After specific ROW in bank has been activiated, internal bank address counter should plus 1",
+                "Cr0, Cr1, Cf0, Cf1 will maintain as CNOP",
+                "CKEn port shall be high",
+                "BistEn port shall be high",
+                "CKOut port shall output the clock just as CK_1G"
+              ]
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b11",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will issue either ACT or RNOP commands independently",
+                "The value of WDR_CHB_PC set the PC bit in ACT command",
+                "each Row port will issue two consective ACT commands for same bank address, the first ACT for first Pseudo Channel, the second ACT for second Pseudo channel",
+                "The ACT commands which send for different bank address also require tRRDL or tRRDS timing constraints",
+                "after the specific ROW in bank for both channel has been activiated, internal bank address counter should plus 1",
+                "Cr0, Cr1, Cf0, Cf1 will maintain as CNOP",
+                "CKEn port shall be high",
+                "BistEn port shall be high",
+                "CKOut port shall output the clock just as CK_1G"
+              ]
+            }
+          ],
+          "transitions": [
+            {
+              "condition": "bank address == WDR_CHB_BK_END",
+              "next_state": "WRITE_ALL"
+            },
+            {
+              "condition": "bank address != WDR_CHB_BK_END",
+              "next_state": "ACTIVATE_ALL"
+            }
+          ]
+        },
+        {
+          "name": "WRITE_ALL",
+          "type": "normal",
+          "behavior": [
+            {
+              "condition": "WDR_CHB_PC == 2'b00",
+              "action": []
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b01 or WDR_CHB_PC == 2'b10",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will maintain RNOP during the column write command",
+                "Cr0, Cr1, Cf0, Cf1 ports will issue WR or CNOP command for Pseudo channel 1 or Pseudo channel 2 depends on the value of WDR_CHB_PC",
+                "each Column port will issue consecuive WR command for bank in different address",
+                "The WR command between different banks require tCCDL, tCCDS, tCCDR Timing constraints depends on the bank address",
+                "During the interval between WR command, column command port should main CNOP",
+                "make sure that the timing between the ACT row command and WR column command meets the constraints of tRCDWR for each bank",
+                "CKEn port shall be high",
+                "BistEn port shall be high",
+                "CKOut port shall output the clock just as CK_1G"
+              ]
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b11",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will maintain RNOP during the column write command",
+                "Cr0, Cr1, Cf0, Cf1 ports will issue WR or CNOP command for Pseudo channel 1 and Pseudo channel 2",
+                "each Column port will issue two consecuive WR command for bank in same address for different Pseudo Channel",
+                "each column port also issue WR command for bank in different address, please make sure the WR command which be send to different channelss should also meet the tCCDL, tCCDS, tCCDR constraints",
+                "CKEn port shall be high",
+                "BistEn port shall be high",
+                "CKOut port shall output the clock just as CK_1G"
+              ]
+            }
+          ],
+          "transitions": [
+            {
+              "condition": "bank address == WDR_CHB_BK_END",
+              "next_state": "READ_ALL"
+            },
+            {
+              "condition": "bank address != WDR_CHB_BK_END",
+              "next_state": "WRITE_ALL"
+            }
+          ]
+        },
+        {
+          "name": "READ_ALL",
+          "type": "normal",
+          "behavior": [
+            {
+              "condition": "WDR_CHB_PC == 2'b00",
+              "action": []
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b01 or WDR_CHB_PC == 2'b10",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will maintain the RNOP command",
+                "Cr0,Cr1,Cf0,Cf1 ports will issue the RD or CNOP commands for banks in different address belong to different Pseudo channel depends on the value of WDR_CHB_PC",
+                "each column port will issue consective WR command for banks in different address",
+                "The RD command for different asddress should meet the tCCDL, tCCDS, tCCDR constraints",
+                "During the interval of RD command between two banks, column command port should maintain CNOP",
+                "CKEn port shall be high",
+                "BistEn port shall be high",
+                "CKOut port shall output the clock just as CK_1G"
+              ]
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b11",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will maintain the RNOP command",
+                "Cr0, Cr1, Cf0, Cf1 ports will issue the RD or CNOP commands for banks in both Pseudo channel 1 and Pseudo channel 2",
+                "each port will issue two consective RD command for bank in same address but for different Pseudo channel",
+                "each port also need to issue RD commands for bank in different address, those commands should meet the timing constraints tCCDL, tCCDS, tCCDR",
+                "the interval between RD for banks in different address should be inserted with CNOP",
+                "CKEn port shall be high",
+                "BistEn port shall be high",
+                "CKOut port shall output the clock just as CK_1G"
+              ]
+            }
+          ],
+          "transitions": [
+            {
+              "condition": "bank address == WDR_CHB_BK_END",
+              "next_state": "PRECHARGE_ALL"
+            },
+            {
+              "condition": "bank address != WDR_CHB_BK_END",
+              "next_state": "READ_ALL"
+            }
+          ]
+        },
+        {
+          "name": "PRECHARGE_ALL",
+          "type": "normal",
+          "behavior": [
+            {
+              "condition": "WDR_CHB_PC == 2'b00",
+              "action": []
+            },
+            {
+              "condition": "WDR_CHB_PC == 2'b01 or WDR_CHB_PC == 2'b10 or WDR_CHB_PC == 2'b11",
+              "action": [
+                "Rr0, Rr1, Rf0, Rf1 ports will issue the PREab command",
+                "Cr0, Cr1, Cf0, Cf1 ports will maintain the CNOP commands",
+                "in each ports the interval between last RD column command and the Row command PREab should meet the tRTP timeming requriements",
+                "and the PREab command hold duration should meet the tRP requirements"
+              ]
+            }
+          ],
+          "transitions": [
+            {
+              "condition": "ROW address == WDR_CHB_ROW_END",
+              "next_state": "IDLE"
+            },
+            {
+              "condition": "ROW address != WDR_CHB_ROW_END",
+              "next_state": "ACT"
+            }
+          ]
+        }
+      ]
+      }
+    },
+    "timing": [],
+    "sub_blocks": [
+      {
+        "block_name": "chbist_ctrl",
+        "": ""
+      }
+    ]
+  }
+}
